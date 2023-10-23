@@ -1,6 +1,9 @@
 package transactions;
 
 import error.ErrorID;
+import jdbc.statements.PreparedStatementForHistoryPlayer;
+import jdbc.statements.PreparedStatementForPlayers;
+import jdbc.statements.PreparedStatementForTransaction;
 import player.ActionsPlayer;
 import player.HistoryPlayer;
 import player.Player;
@@ -8,6 +11,8 @@ import player.StatusOperationPlayer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -19,22 +24,18 @@ import java.util.List;
 public class Transaction {
 
     /**
-     * DataBase for transaction ID
-     */
-    private static List<Integer> transactionID = new ArrayList<>();
-
-    /**
      * Debit operation
      * @param player Player
      * @param reader reads values from the console
      */
-    public static boolean debitTransaction(Player player, BufferedReader reader) {
+    public static boolean debitTransaction(Player player, BufferedReader reader, Connection connection) throws SQLException {
 
         System.out.print("Enter the TransactionID: ");
         int transactionDebitID = 0;
         try {
             transactionDebitID = Integer.parseInt(reader.readLine());
-            if (transactionID.contains(transactionDebitID)) {
+
+            if (PreparedStatementForTransaction.likeTransaction(connection, transactionDebitID)) {
                 try {
                     throw new ErrorID("Error TransactionID");
                 } catch (ErrorID errorID) {
@@ -63,11 +64,12 @@ public class Transaction {
         double resultAccount = player.getAccount() - accountDebit;
         if (resultAccount >= 0) {
             player.setAccount(resultAccount);
-            transactionID.add(transactionDebitID);
-            player.getHistoryPlayer().add(new HistoryPlayer(new Date(), ActionsPlayer.DEBIT, accountDebit, StatusOperationPlayer.SUCCESS));
+            PreparedStatementForPlayers.updatePlayerWithHistory(connection, player, accountDebit, ActionsPlayer.DEBIT);
+            PreparedStatementForTransaction.insertTransaction(connection, transactionDebitID);
             return true;
         }
-        player.getHistoryPlayer().add(new HistoryPlayer(new Date(), ActionsPlayer.DEBIT, accountDebit, StatusOperationPlayer.ERROR));
+        PreparedStatementForHistoryPlayer.insertHistoryPlayer(connection, player.getID(), new Date(), ActionsPlayer.DEBIT,
+                accountDebit, StatusOperationPlayer.ERROR);
 
         return false;
     }
@@ -77,13 +79,13 @@ public class Transaction {
      * @param player Player
      * @param reader reads values from the console
      */
-    public static boolean creditTransaction(Player player, BufferedReader reader) {
+    public static boolean creditTransaction(Player player, BufferedReader reader, Connection connection) throws SQLException {
 
         System.out.print("Enter the TransactionID: ");
         int transactionCreditID = 0;
         try {
             transactionCreditID = Integer.parseInt(reader.readLine());
-            if (transactionID.contains(transactionCreditID)) {
+            if (PreparedStatementForTransaction.likeTransaction(connection, transactionCreditID)) {
                 try {
                     throw new ErrorID("Error TransactionID");
                 } catch (ErrorID errorID) {
@@ -111,13 +113,10 @@ public class Transaction {
 
         double resultAccount = player.getAccount() + accountCredit;
         player.setAccount(resultAccount);
-        transactionID.add(transactionCreditID);
-        player.getHistoryPlayer().add(new HistoryPlayer(new Date(), ActionsPlayer.CREDIT, accountCredit, StatusOperationPlayer.SUCCESS));
+        PreparedStatementForPlayers.updatePlayerWithHistory(connection, player, accountCredit, ActionsPlayer.CREDIT);
+        PreparedStatementForTransaction.insertTransaction(connection, transactionCreditID);
         return true;
 
     }
 
-    public static List<Integer> getTransactionID() {
-        return transactionID;
-    }
 }

@@ -1,11 +1,13 @@
 package consoleProgram;
 
+import jdbc.statements.PreparedStatementForHistoryPlayer;
+import jdbc.statements.PreparedStatementForPlayers;
 import player.ActionsPlayer;
-import player.HistoryPlayer;
 import player.Player;
 import player.StatusOperationPlayer;
 import transactions.Transaction;
 
+import java.sql.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.Date;
@@ -21,8 +23,8 @@ public class ConsoleProgram {
      *
      * @param reader reads values from the console
      */
-    public void startProgram(BufferedReader reader) {
-        showMenuChoicePlayers(reader);
+    public void startProgram(BufferedReader reader, java.sql.Connection connection) throws SQLException {
+        showMenuChoicePlayers(reader, connection);
     }
 
     /**
@@ -30,9 +32,9 @@ public class ConsoleProgram {
      *
      * @param reader reads values from the console
      */
-    private void showMenuChoicePlayers(BufferedReader reader) {
+    private void showMenuChoicePlayers(BufferedReader reader, Connection connection) throws SQLException {
         while (true) {
-            if (Player.getPlayersList().isEmpty()) {
+            if (!PreparedStatementForPlayers.retrievePlayers(connection).next()) {
                 System.out.println("Empty list of players! Register a new user?\n1. Yes 2. No");
                 int answer = 0;
                 try {
@@ -41,7 +43,8 @@ public class ConsoleProgram {
                         System.out.println("Error! Please enter a number: 1 or 2");
                     } else if (answer == 1) {
                         System.out.println("Please enter a name Player: ");
-                        new Player(reader.readLine());
+                        Player player = new Player(reader.readLine());
+                        PreparedStatementForPlayers.insertPlayer(connection, player);
                         System.out.println(StatusOperationPlayer.SUCCESS);
                         System.out.println();
                     } else if (answer == 2) {
@@ -66,11 +69,12 @@ public class ConsoleProgram {
                         System.out.println();
                     } else if (answer == 1) {
                         System.out.println("Please enter a name Player: ");
-                        new Player(reader.readLine());
+                        Player player = new Player(reader.readLine());
+                        PreparedStatementForPlayers.insertPlayer(connection, player);
                         System.out.println(StatusOperationPlayer.SUCCESS);
                         System.out.println();
                     } else if (answer == 2) {
-                        choicePlayer(reader);
+                        choicePlayer(reader, connection);
                     } else if (answer == 3) {
                         System.out.println("Exit program");
                         System.exit(0);
@@ -89,39 +93,36 @@ public class ConsoleProgram {
      *
      * @param reader reads values from the console
      */
-    private void choicePlayer(BufferedReader reader) {
+    private void choicePlayer(BufferedReader reader, Connection connection) throws SQLException {
         System.out.println();
-        System.out.println("Please choice Player (enter Number Player): ");
-        for (Player player : Player.getPlayersList()) {
-            System.out.println((Player.getPlayersList().indexOf(player) + 1) + ") " + player);
-        }
+        System.out.println("Please choice Player (enter Number ID Player): ");
+        PreparedStatementForPlayers.printPlayers(PreparedStatementForPlayers.retrievePlayers(connection));
         int answer = 0;
         while (true) {
-            System.out.println("Enter Number Player:");
+            System.out.println("Enter Number ID Player:");
             try {
                 answer = Integer.parseInt(reader.readLine());
-                if (answer < 1 || answer > Player.getPlayersList().size()) {
-                    System.out.println("Error! Please enter a number: 1 to " + Player.getPlayersList().size());
+                if (answer < 1 || answer > PreparedStatementForPlayers.countPlayers(connection)) {
+                    System.out.println("Error! Please enter a number: 1 to " + PreparedStatementForPlayers.countPlayers(connection));
                     continue;
                 }
             } catch (NumberFormatException | IOException n) {
-                System.out.println("Error! Please enter a number: 1 to " + Player.getPlayersList().size());
+                System.out.println("Error! Please enter a number: 1 to " + PreparedStatementForPlayers.countPlayers(connection));
                 continue;
             }
             break;
         }
-        menuPlayer(answer, reader);
+        menuPlayer(answer, reader, connection);
     }
 
     /**
      * This is method show Player menu my console program
      *
-     * @param indexPlayer index in List {@link Player#playersList} my Player
+     * @param indexPlayer index in DataBase my Player
      * @param reader      reads values from the console
      */
-    private void menuPlayer(int indexPlayer, BufferedReader reader) {
-        Player player = Player.getPlayersList().get(indexPlayer - 1);
-        player.getHistoryPlayer().add(new HistoryPlayer(new Date(), ActionsPlayer.LOGIN, 0d, StatusOperationPlayer.SUCCESS));
+    private void menuPlayer(int indexPlayer, BufferedReader reader, Connection connection) throws SQLException {
+        Player player = PreparedStatementForPlayers.returnPlayerSQL(connection, indexPlayer);
 
         int answer = 0;
         while (true) {
@@ -143,27 +144,27 @@ public class ConsoleProgram {
                 continue;
             }
             if (answer == 1) {
-                if (Transaction.debitTransaction(player, reader)) {
+                if (Transaction.debitTransaction(player, reader, connection)) {
                     System.out.println(ActionsPlayer.DEBIT.toString() + " " + StatusOperationPlayer.SUCCESS.toString());
                 } else {
                     System.out.println(ActionsPlayer.DEBIT.toString() + " " + StatusOperationPlayer.ERROR.toString());
                 }
             } else if (answer == 2) {
-                if (Transaction.creditTransaction(player, reader)) {
+                if (Transaction.creditTransaction(player, reader, connection)) {
                     System.out.println(ActionsPlayer.CREDIT.toString() + " " + StatusOperationPlayer.SUCCESS.toString());
                 } else {
                     System.out.println(ActionsPlayer.CREDIT.toString() + " " + StatusOperationPlayer.ERROR.toString());
                 }
             } else if (answer == 3) {
                 System.out.println("History Player: ");
-                player.getHistoryPlayer().forEach(System.out::println);
+                PreparedStatementForHistoryPlayer.retrieveAllHistoryPlayer(connection, player);
             } else if (answer == 4) {
                 System.out.println("History Player ONLY Transaction Operations: ");
-                player.getHistoryPlayer().stream().filter(o1 -> o1.getActionsPlayer().equals(ActionsPlayer.DEBIT) ||
-                        o1.getActionsPlayer().equals(ActionsPlayer.CREDIT)).forEach(System.out::println);
+                PreparedStatementForHistoryPlayer.retrieveTransactionsHistoryPlayer(connection, player);
             } else if (answer == 5) {
                 System.out.println("Exit to Main Menu");
-                player.getHistoryPlayer().add(new HistoryPlayer(new Date(), ActionsPlayer.EXIT, 0d, StatusOperationPlayer.SUCCESS));
+                PreparedStatementForHistoryPlayer.insertHistoryPlayer(connection, player.getID(), new Date(),
+                        ActionsPlayer.EXIT, 0.0, StatusOperationPlayer.SUCCESS);
                 break;
             }
         }

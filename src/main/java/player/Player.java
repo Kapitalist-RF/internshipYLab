@@ -12,16 +12,6 @@ import java.util.Objects;
 public class Player {
 
     /**
-     * player database
-     */
-    private static List<Player> playersList = new ArrayList<>();
-
-    /**
-     * unique to players ID
-     */
-    private static int playerID;
-
-    /**
      * ID player
      */
     private int ID;
@@ -35,19 +25,15 @@ public class Player {
      */
     private Double account;
 
-    /**
-     * History player all actions
-     */
-    private List<HistoryPlayer> historyPlayer;
-
     public Player(String name) {
-        this.ID = playerID;
-        playerID++;
         this.name = name;
         this.account = 0d;
-        this.historyPlayer = new ArrayList<>();
-        this.historyPlayer.add(new HistoryPlayer(new Date(), ActionsPlayer.REGISTRATION, 0d, StatusOperationPlayer.SUCCESS));
-        playersList.add(this);
+    }
+
+    public Player(int ID, String name, Double account) {
+        this.ID = ID;
+        this.name = name;
+        this.account = account;
     }
 
     @Override
@@ -67,10 +53,6 @@ public class Player {
         return Objects.hash(ID);
     }
 
-    public static List<Player> getPlayersList() {
-        return playersList;
-    }
-
     public int getID() {
         return ID;
     }
@@ -81,10 +63,6 @@ public class Player {
 
     public Double getAccount() {
         return account;
-    }
-
-    public List<HistoryPlayer> getHistoryPlayer() {
-        return historyPlayer;
     }
 
     public void setAccount(Double account) {

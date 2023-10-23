@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+    <appSettings>
+        <connectionDataBase>
+            <URL>jdbc:postgresql://localhost:5432/postgres</URL>
+            <USER_NAME>postgres</USER_NAME>
+            <PASSWORD>1234</PASSWORD>
+        </connectionDataBase>
+    </appSettings>
+</configuration>

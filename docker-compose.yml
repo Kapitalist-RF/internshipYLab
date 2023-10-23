@@ -1,0 +1,38 @@
+# Use postgres/example user/password credentials
+version: '3.1'
+
+services:
+
+  db:
+    image: postgres
+    container_name: postgresSQL
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+#      POSTGRES_DB: postgres
+
+#  liquibase:
+#    image: liquibase/liquibase
+#      # Name of the container
+#    container_name: Liquibase_container
+#    # Image to be pulled from Docker Hub
+#    # Setting depends_on to PostgreSQL container to wait till the service is ready to accept connections
+#    depends_on:
+#      db:
+#        condition: service_started
+#    # Volume to add the liquibase collection of scripts
+#    volumes:
+#      - ./src/main/resources/db/changelog:/liquibase/changelog/
+#    # Command to run the liquibase update service
+#    command:
+#      --defaults-file=/liquibase/changelog/liquibase.properties update
+#  liquibase --url=jdbc:"postgresql://0.0.0.0:5432/postgres" --changelog-file=/liquibase/changelog/changelog.xml --username=postgres --password=1234 update
+
+#  adminer:
+#    image: adminer
+#    restart: always
+#    ports:
+#      - 8080:8080
